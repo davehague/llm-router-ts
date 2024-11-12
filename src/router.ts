@@ -1,23 +1,23 @@
-interface ComplexityMetrics {
-  // Structural complexity of the prompt
-  structural: {
-    length: number; // Raw length
-    entropy: number; // Information density
-    symbolRatio: number; // Non-alphabetic character ratio
+interface PromptAnalysis {
+  structure: {
+    characterCount: number;
+    informationDensity: number;
+    nonAlphanumericRatio: number;
   };
 
-  // Linguistic complexity
-  linguistic: {
-    avgWordLength: number; // Average word length
-    avgSentenceLength: number; // Words per sentence
-    nestedClauses: number; // Estimated clause depth
-    complexityIndicators: number; // Presence of complexity-indicating terms
+  readability: {
+    wordLength: number;
+    sentenceLength: number;
+    clauseDepth: number;
+    cognitiveComplexity: number;
   };
+
+  complexity: number;
 }
 
-export class GeneralizedRouter {
-  private complexityIndicators = new Set([
-    // Analysis and Reasoning
+export class LanguageModelRouter {
+  private readonly cognitiveVerbs = new Set([
+    // Analytical
     "analyze",
     "evaluate",
     "synthesize",
@@ -28,15 +28,18 @@ export class GeneralizedRouter {
     "interpret",
     "cause",
 
-    // Design and Creation
+    // Creative
     "design",
     "develop",
     "architect",
     "formulate",
     "devise",
     "construct",
+    "compose",
+    "generate",
+    "model",
 
-    // Explanation and Integration
+    // Explanatory
     "explain",
     "integrate",
     "elaborate",
@@ -45,215 +48,189 @@ export class GeneralizedRouter {
     "elucidate",
     "discuss",
 
-    // Comparison and Contrast
+    // Comparative
     "compare",
     "contrast",
     "differentiate",
     "distinguish",
 
-    // Problem Solving
+    // Problem-Solving
     "solve",
     "optimize",
     "resolve",
     "determine",
 
-    // Research and Theory
+    // Research
     "research",
     "theorize",
     "hypothesize",
     "predict",
 
-    // Critical Thinking
+    // Argumentative
     "argue",
     "debate",
     "justify",
     "defend",
     "prove",
 
-    // Complex Creation
-    "compose",
-    "generate",
-    "model",
-
-    // Strategic Planning
+    // Strategic
     "strategize",
     "implement",
     "propose",
 
-    // Exploratory Thinking
+    // Exploratory
     "explore",
     "brainstorm",
     "conceptualize",
     "envision",
     "imagine",
     "contemplate",
-    "ponder",
-    "speculate",
-    "ideate",
     "discover",
     "innovate",
     "reimagine",
     "implications",
   ]);
 
-  public route(prompt: string): {
-    model: "strong" | "weak";
-    metrics: ComplexityMetrics;
-  } {
-    if (!prompt?.trim()) {
-      return { model: "weak", metrics: this.getEmptyMetrics() };
-    }
-
-    const metrics = this.calculateMetrics(prompt);
-
-    // Calculate overall complexity score based on structural and linguistic features
-    const complexityScore = this.calculateComplexityScore(metrics);
-
-    return {
-      model: complexityScore > 0.5 ? "strong" : "weak",
-      metrics,
-    };
-  }
-
-  private calculateMetrics(text: string): ComplexityMetrics {
-    const words = text.split(/\s+/);
-    const sentences = text.split(/[.!?]+/).filter((s) => s.trim());
-
-    return {
-      structural: {
-        length: text.length,
-        entropy: this.calculateEntropy(text),
-        symbolRatio: this.calculateSymbolRatio(text),
-      },
-      linguistic: {
-        avgWordLength: this.calculateAvgWordLength(words),
-        avgSentenceLength: this.calculateAvgSentenceLength(sentences, words),
-        nestedClauses: this.estimateClauseDepth(text),
-        complexityIndicators: this.calculateComplexityIndicators(text),
-      },
-    };
-  }
-
-  private verbForms = new Map<string, string[]>([
-    // Verbs that drop 'e' before 'ing'
+  private readonly irregularVerbs = new Map([
     ["explore", ["explores", "exploring"]],
-    ["cause", ["causes", "causing"]],
-    ["create", ["creates", "creating"]],
-    ["evaluate", ["evaluates", "evaluating"]],
-    ["discuss", ["discusses", "discussing"]],
-    ["generate", ["generates", "generating"]],
     ["analyze", ["analyzes", "analyzing"]],
-    ["devise", ["devises", "devising"]],
-    ["optimize", ["optimizes", "optimizing"]],
+    ["evaluate", ["evaluates", "evaluating"]],
+    ["generate", ["generates", "generating"]],
     ["integrate", ["integrates", "integrating"]],
-    ["compose", ["composes", "composing"]],
     ["investigate", ["investigates", "investigating"]],
-    ["formulate", ["formulates", "formulating"]],
     ["innovate", ["innovates", "innovating"]],
   ]);
 
-  private calculateComplexityIndicators(text: string): number {
-    const lowercaseText = text.toLowerCase();
-    let count = 0;
-
-    for (const indicator of this.complexityIndicators) {
-      // Get special verb forms if they exist
-      const specialForms = this.verbForms.get(indicator);
-
-      if (specialForms) {
-        // Check base word and its special conjugations
-        if (
-          lowercaseText.includes(indicator) ||
-          specialForms.some((form) => lowercaseText.includes(form))
-        ) {
-          count++;
-        }
-      } else {
-        // Default handling for regular verbs
-        if (
-          lowercaseText.includes(indicator) ||
-          lowercaseText.includes(indicator + "s") ||
-          lowercaseText.includes(indicator + "ing")
-        ) {
-          count++;
-        }
-      }
+  public route(prompt: string): {
+    model: "strong" | "weak";
+    analysis: PromptAnalysis;
+  } {
+    if (!prompt?.trim()) {
+      return { model: "weak", analysis: this.createEmptyAnalysis() };
     }
 
-    return count;
+    const initialAnalysis = this.analyzePrompt(prompt);
+    const complexityScore = this.assessComplexity(initialAnalysis);
+
+    const analysis = {
+      ...initialAnalysis,
+      complexity: complexityScore,
+    };
+
+    return {
+      model: complexityScore > 0.5 ? "strong" : "weak",
+      analysis,
+    };
   }
 
-  private calculateEntropy(text: string): number {
-    const frequencies = new Map<string, number>();
+  private analyzePrompt(text: string): PromptAnalysis {
+    const words = text.split(/\s+/);
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim());
+
+    const analysis = {
+      structure: {
+        characterCount: text.length,
+        informationDensity: this.calculateInformationDensity(text),
+        nonAlphanumericRatio: this.calculateNonAlphanumericRatio(text),
+      },
+      readability: {
+        wordLength: this.average(words.map((w) => w.length)),
+        sentenceLength: words.length / Math.max(sentences.length, 1),
+        clauseDepth: this.measureClauseDepth(text),
+        cognitiveComplexity: this.measureCognitiveComplexity(text),
+      },
+      complexity: 0, // Will be set after assessment
+    };
+
+    return analysis;
+  }
+
+  private calculateInformationDensity(text: string): number {
+    const charFrequencies = new Map<string, number>();
+
     for (const char of text) {
-      frequencies.set(char, (frequencies.get(char) || 0) + 1);
+      charFrequencies.set(char, (charFrequencies.get(char) || 0) + 1);
     }
 
-    return Array.from(frequencies.values()).reduce((entropy, freq) => {
-      const p = freq / text.length;
-      return entropy - p * Math.log2(p);
+    return Array.from(charFrequencies.values()).reduce((entropy, freq) => {
+      const probability = freq / text.length;
+      return entropy - probability * Math.log2(probability);
     }, 0);
   }
 
-  private calculateSymbolRatio(text: string): number {
-    const symbols = text.replace(/[a-zA-Z0-9\s]/g, "");
-    return symbols.length / text.length;
+  private calculateNonAlphanumericRatio(text: string): number {
+    const nonAlphanumeric = text.replace(/[a-zA-Z0-9\s]/g, "");
+    return nonAlphanumeric.length / text.length;
   }
 
-  private calculateAvgWordLength(words: string[]): number {
-    if (!words.length) return 0;
-    return words.reduce((sum, word) => sum + word.length, 0) / words.length;
+  private average(numbers: number[]): number {
+    return numbers.length
+      ? numbers.reduce((sum, num) => sum + num, 0) / numbers.length
+      : 0;
   }
 
-  private calculateAvgSentenceLength(
-    sentences: string[],
-    words: string[]
-  ): number {
-    if (!sentences.length) return 0;
-    return words.length / sentences.length;
-  }
-
-  private estimateClauseDepth(text: string): number {
-    const clauseMarkers = [
-      /,/g, // Basic clause separation
-      /\b(that|which|where|when|because|if|unless)\b/g, // Subordinate clauses
-      /[(\[{]/g, // Opening brackets indicate nesting
+  private measureClauseDepth(text: string): number {
+    const clausePatterns = [
+      /,/g,
+      /\b(that|which|when|because|if|unless)\b/g,
+      /[(\[{]/g,
     ];
 
-    return clauseMarkers.reduce(
-      (depth, marker) => depth + (text.match(marker)?.length || 0),
+    return clausePatterns.reduce(
+      (depth, pattern) => depth + (text.match(pattern)?.length || 0),
       0
     );
   }
 
-  private calculateComplexityScore(metrics: ComplexityMetrics): number {
-    const normalize = (value: number, max: number) => Math.min(value / max, 1);
+  private measureCognitiveComplexity(text: string): number {
+    const lowercaseText = text.toLowerCase();
+    let complexVerbs = 0;
 
-    const structuralScore =
-      normalize(metrics.structural.entropy, 4.5) * 0.05 + 
-      normalize(metrics.structural.symbolRatio, 0.3) * 0.1;
+    for (const verb of this.cognitiveVerbs) {
+      const variations = this.irregularVerbs.get(verb) || [
+        verb + "s",
+        verb + "ing",
+      ];
 
-    const linguisticScore =
-      normalize(metrics.linguistic.avgWordLength, 8) * 0.3 +
-      normalize(metrics.linguistic.avgSentenceLength, 20) * 0.3 +
-      normalize(metrics.linguistic.nestedClauses, 10) * 0.12;
+      if (
+        lowercaseText.includes(verb) ||
+        variations.some((form) => lowercaseText.includes(form))
+      ) {
+        complexVerbs++;
+      }
+    }
 
-    // Complexity indicators have a significant impact
-    const indicatorScore =
-      normalize(metrics.linguistic.complexityIndicators, 2) * 0.4;
-
-    return structuralScore + linguisticScore + indicatorScore;
+    return complexVerbs;
   }
 
-  private getEmptyMetrics(): ComplexityMetrics {
+  private assessComplexity(analysis: PromptAnalysis): number {
+    const normalizeScore = (value: number, max: number) =>
+      Math.min(value / max, 1);
+
+    return (
+      normalizeScore(analysis.structure.informationDensity, 4.5) * 0.05 +
+      normalizeScore(analysis.structure.nonAlphanumericRatio, 0.3) * 0.1 +
+      normalizeScore(analysis.readability.wordLength, 8) * 0.3 +
+      normalizeScore(analysis.readability.sentenceLength, 20) * 0.3 +
+      normalizeScore(analysis.readability.clauseDepth, 10) * 0.12 +
+      normalizeScore(analysis.readability.cognitiveComplexity, 2) * 0.4
+    );
+  }
+
+  private createEmptyAnalysis(): PromptAnalysis {
     return {
-      structural: { length: 0, entropy: 0, symbolRatio: 0 },
-      linguistic: {
-        avgWordLength: 0,
-        avgSentenceLength: 0,
-        nestedClauses: 0,
-        complexityIndicators: 0,
+      structure: {
+        characterCount: 0,
+        informationDensity: 0,
+        nonAlphanumericRatio: 0,
       },
+      readability: {
+        wordLength: 0,
+        sentenceLength: 0,
+        clauseDepth: 0,
+        cognitiveComplexity: 0,
+      },
+      complexity: 0,
     };
   }
 }

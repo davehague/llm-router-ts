@@ -1,137 +1,152 @@
-// src/index.ts
-import { GeneralizedRouter } from './router';
-import { testCases } from './test-cases';
+import { LanguageModelRouter } from "./router";
+import { testCases } from "./test-cases";
 
-const router = new GeneralizedRouter();
+const router = new LanguageModelRouter();
 
-function formatOutput(text: string, model: 'strong' | 'weak'): string {
-  const colorCode = model === 'strong' ? '\x1b[32m' : '\x1b[36m';
+function formatModelOutput(text: string, model: "strong" | "weak"): string {
+  const colorCode = model === "strong" ? "\x1b[32m" : "\x1b[36m";
   return `${colorCode}${text}\x1b[0m`;
 }
 
-function formatMatch(matches: boolean, expected: string, actual: string): string {
-  if (matches) return '\x1b[32m✓\x1b[0m';
-  // Yellow warning for false positives (said STRONG when should be WEAK)
-  if (expected === 'WEAK' && actual === 'STRONG') return '\x1b[33m⚠\x1b[0m';
-  // Red error for false negatives (said WEAK when should be STRONG)
-  return '\x1b[31m✗\x1b[0m';
+function formatResultIndicator(
+  isCorrect: boolean,
+  expected: string,
+  actual: string
+): string {
+  if (isCorrect) return "\x1b[32m✓\x1b[0m";
+  return expected === "WEAK" && actual === "STRONG"
+    ? "\x1b[33m⚠\x1b[0m"
+    : "\x1b[31m✗\x1b[0m";
 }
 
-function truncateString(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str.padEnd(maxLength);
-  return str.slice(0, maxLength - 3) + '...';
+function padText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text.padEnd(maxLength);
+  return text.slice(0, maxLength - 3) + "...";
 }
 
-function calculateScoreComponents(metrics: any): {
-  structuralScore: number;
-  linguisticScore: number;
-  indicatorScore: number;
-  total: number;
-} {
+function formatAnalysisReport(
+  analysis: any,
+  expected: string,
+  actual: string
+): string {
+  const decisionThreshold = 0.5;
+  const isOverClassified = expected === "WEAK" && actual === "STRONG";
+
+  const headerSymbol = isOverClassified
+    ? "⚠ Classification Analysis:"
+    : "✗ Classification Analysis:";
+  const headerColor = isOverClassified ? "\x1b[33m" : "\x1b[31m";
+
+  // Normalize values for display
   const normalize = (value: number, max: number) => Math.min(value / max, 1);
 
-  const structuralScore =
-    normalize(metrics.structural.entropy, 4.5) * 0.1 +
-    normalize(metrics.structural.symbolRatio, 0.3) * 0.15;
-
-  const linguisticScore =
-    normalize(metrics.linguistic.avgWordLength, 8) * 0.3 +
-    normalize(metrics.linguistic.avgSentenceLength, 20) * 0.2 +
-    normalize(metrics.linguistic.nestedClauses, 10) * 0.15;
-
-  const indicatorScore =
-    normalize(metrics.linguistic.complexityIndicators, 2) * 0.4;
-
-  return {
-    structuralScore,
-    linguisticScore,
-    indicatorScore,
-    total: structuralScore + linguisticScore + indicatorScore
+  const structureScores = {
+    density: normalize(analysis.structure.informationDensity, 4.5),
+    symbols: normalize(analysis.structure.nonAlphanumericRatio, 0.3),
   };
-}
 
-function formatFailureDetails(metrics: any, expected: string, actual: string): string {
-  const scores = calculateScoreComponents(metrics);
-  const threshold = 0.5;
-  const isWarning = expected === 'WEAK' && actual === 'STRONG';
-  const headerSymbol = isWarning ? '⚠ Warning Analysis:' : '✗ Failure Analysis:';
-  const headerColor = isWarning ? '\x1b[33m' : '\x1b[31m';
+  const readabilityScores = {
+    words: normalize(analysis.readability.wordLength, 8),
+    sentences: normalize(analysis.readability.sentenceLength, 20),
+    clauses: normalize(analysis.readability.clauseDepth, 10),
+  };
+
+  const cognitionScore = normalize(analysis.readability.cognitiveComplexity, 2);
 
   return `
 │ ${headerColor}${headerSymbol}\x1b[0m
 │ ----------------
-│ Total Score: ${scores.total.toFixed(3)} (Threshold: ${threshold})
+│ Complexity Score: ${analysis.complexity.toFixed(
+    3
+  )} (Threshold: ${decisionThreshold})
 │ 
-│ Score Breakdown:
-│   • Structural (25%):  ${scores.structuralScore.toFixed(3)} 
-│     - Entropy: ${metrics.structural.entropy.toFixed(3)} (normalized: ${(metrics.structural.entropy / 4.5).toFixed(3)})
-│     - Symbol Ratio: ${metrics.structural.symbolRatio.toFixed(3)} (normalized: ${(metrics.structural.symbolRatio / 0.3).toFixed(3)})
+│ Score Components:
+│   • Structure:
+│     - Information Density: ${analysis.structure.informationDensity.toFixed(
+    3
+  )} (normalized: ${structureScores.density.toFixed(3)})
+│     - Non-Alphanumeric Ratio: ${analysis.structure.nonAlphanumericRatio.toFixed(
+    3
+  )} (normalized: ${structureScores.symbols.toFixed(3)})
 │ 
-│   • Linguistic (65%):  ${scores.linguisticScore.toFixed(3)}
-│     - Word Length: ${metrics.linguistic.avgWordLength.toFixed(2)} (normalized: ${(metrics.linguistic.avgWordLength / 8).toFixed(3)})
-│     - Sentence Length: ${metrics.linguistic.avgSentenceLength.toFixed(2)} (normalized: ${(metrics.linguistic.avgSentenceLength / 20).toFixed(3)})
-│     - Nested Clauses: ${metrics.linguistic.nestedClauses} (normalized: ${(metrics.linguistic.nestedClauses / 10).toFixed(3)})
+│   • Readability:
+│     - Word Length: ${analysis.readability.wordLength.toFixed(
+    2
+  )} (normalized: ${readabilityScores.words.toFixed(3)})
+│     - Sentence Length: ${analysis.readability.sentenceLength.toFixed(
+    2
+  )} (normalized: ${readabilityScores.sentences.toFixed(3)})
+│     - Clause Depth: ${
+    analysis.readability.clauseDepth
+  } (normalized: ${readabilityScores.clauses.toFixed(3)})
 │ 
-│   • Complexity Indicators (40%): ${scores.indicatorScore.toFixed(3)}
-│     - Count: ${metrics.linguistic.complexityIndicators} (normalized: ${(metrics.linguistic.complexityIndicators / 2).toFixed(3)})
+│   • Cognitive Complexity:
+│     - Complex Verbs: ${
+    analysis.readability.cognitiveComplexity
+  } (normalized: ${cognitionScore.toFixed(3)})
 │ 
-│ Decision: ${scores.total > threshold ? 'STRONG' : 'WEAK'} (${scores.total.toFixed(3)} ${scores.total > threshold ? '>' : '<='} ${threshold})`;
+│ Decision: ${
+    analysis.complexity > decisionThreshold ? "STRONG" : "WEAK"
+  } (${analysis.complexity.toFixed(3)} ${
+    analysis.complexity > decisionThreshold ? ">" : "<="
+  } ${decisionThreshold})`;
 }
 
-function testRouter() {
+function runRouterTests() {
   console.clear();
-  console.log('🤖 Router Test Results');
-  console.log('====================\n');
+  console.log("🤖 Model Router Test Results");
+  console.log("===========================\n");
 
-  console.log('Legend: ✓ Correct  ⚠ Over-classified  ✗ Under-classified\n');
+  console.log("Legend: ✓ Correct  ⚠ Over-classified  ✗ Under-classified\n");
 
-  // Print header
-  console.log('│ PROMPT │ EXPECTED │ ACTUAL │ MATCH │ REASON │');
-  console.log('├' + '─'.repeat(150) + '┤');
+  console.log("│ PROMPT │ EXPECTED │ ACTUAL │ MATCH │ REASON │");
+  console.log("├" + "─".repeat(150) + "┤");
 
-  let matches = 0;
-  let warnings = 0;
-  let errors = 0;
-  const total = testCases.length;
+  let correctCount = 0;
+  let overClassified = 0;
+  let underClassified = 0;
+  const totalTests = testCases.length;
 
-  testCases.forEach((testCase, index) => {
-    const result = router.route(testCase.prompt);
+  testCases.forEach((test) => {
+    const result = router.route(test.prompt);
     const actual = result.model.toUpperCase();
-    const matches_expectation = actual === testCase.expected_result;
-    
-    if (matches_expectation) {
-      matches++;
-    } else if (testCase.expected_result === 'WEAK' && actual === 'STRONG') {
-      warnings++;
+    const isCorrect = actual === test.expected_result;
+
+    if (isCorrect) {
+      correctCount++;
+    } else if (test.expected_result === "WEAK" && actual === "STRONG") {
+      overClassified++;
     } else {
-      errors++;
+      underClassified++;
     }
 
-    // Format each column
-    const promptCol = truncateString(testCase.prompt, 40);
-    const expectedCol = testCase.expected_result.padEnd(8);
-    const actualCol = formatOutput(actual.padEnd(8), result.model);
-    const matchCol = formatMatch(matches_expectation, testCase.expected_result, actual);
-    const reasonCol = truncateString(testCase.reason, 80);
+    const formattedRow = [
+      padText(test.prompt, 40),
+      test.expected_result.padEnd(8),
+      formatModelOutput(actual.padEnd(8), result.model),
+      formatResultIndicator(isCorrect, test.expected_result, actual),
+      padText(test.reason, 80),
+    ].join(" │ ");
 
-    console.log(`│ ${promptCol} │ ${expectedCol} │ ${actualCol} │ ${matchCol}    │ ${reasonCol} │`);
+    console.log(`│ ${formattedRow} │`);
 
-    // Print detailed metrics for failures
-    if (!matches_expectation) {
-      console.log('├' + '─'.repeat(150) + '┤');
-      console.log(formatFailureDetails(result.metrics, testCase.expected_result, actual));
-      console.log('├' + '─'.repeat(150) + '┤');
+    if (!isCorrect) {
+      console.log("├" + "─".repeat(150) + "┤");
+      console.log(
+        formatAnalysisReport(result.analysis, test.expected_result, actual)
+      );
+      console.log("├" + "─".repeat(150) + "┤");
     }
   });
 
-  // Print summary
-  console.log('├' + '─'.repeat(150) + '┤');
-  const accuracy = (matches / total * 100).toFixed(1);
-  console.log(`│ Summary: ${matches}/${total} correct (${accuracy}% accuracy)`);
-  console.log(`│         ${warnings} warnings (over-classified as STRONG)`);
-  console.log(`│         ${errors} errors (under-classified as WEAK)`);
-  console.log('└' + '─'.repeat(150) + '┘');
+  console.log("├" + "─".repeat(150) + "┤");
+  const accuracy = ((correctCount / totalTests) * 100).toFixed(1);
+  console.log(
+    `│ Results: ${correctCount}/${totalTests} correct (${accuracy}% accuracy)`
+  );
+  console.log(`│         ${overClassified} over-classified as STRONG`);
+  console.log(`│         ${underClassified} under-classified as WEAK`);
+  console.log("└" + "─".repeat(150) + "┘");
 }
 
-// Run tests
-testRouter();
+runRouterTests();
