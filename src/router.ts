@@ -26,6 +26,7 @@ export class GeneralizedRouter {
     "assess",
     "critique",
     "interpret",
+    "cause",
 
     // Design and Creation
     "design",
@@ -42,6 +43,7 @@ export class GeneralizedRouter {
     "demonstrate",
     "illustrate",
     "elucidate",
+    "discuss",
 
     // Comparison and Contrast
     "compare",
@@ -134,8 +136,10 @@ export class GeneralizedRouter {
   private verbForms = new Map<string, string[]>([
     // Verbs that drop 'e' before 'ing'
     ["explore", ["explores", "exploring"]],
+    ["cause", ["causes", "causing"]],
     ["create", ["creates", "creating"]],
     ["evaluate", ["evaluates", "evaluating"]],
+    ["discuss", ["discusses", "discussing"]],
     ["generate", ["generates", "generating"]],
     ["analyze", ["analyzes", "analyzing"]],
     ["devise", ["devises", "devising"]],
@@ -225,13 +229,13 @@ export class GeneralizedRouter {
     const normalize = (value: number, max: number) => Math.min(value / max, 1);
 
     const structuralScore =
-      normalize(metrics.structural.entropy, 4.5) * 0.15 + // Reduced weight of entropy
-      normalize(metrics.structural.symbolRatio, 0.3) * 0.15;
+      normalize(metrics.structural.entropy, 4.5) * 0.05 + 
+      normalize(metrics.structural.symbolRatio, 0.3) * 0.1;
 
     const linguisticScore =
-      normalize(metrics.linguistic.avgWordLength, 8) * 0.2 +
-      normalize(metrics.linguistic.avgSentenceLength, 20) * 0.15 +
-      normalize(metrics.linguistic.nestedClauses, 10) * 0.15;
+      normalize(metrics.linguistic.avgWordLength, 8) * 0.3 +
+      normalize(metrics.linguistic.avgSentenceLength, 20) * 0.3 +
+      normalize(metrics.linguistic.nestedClauses, 10) * 0.12;
 
     // Complexity indicators have a significant impact
     const indicatorScore =

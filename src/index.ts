@@ -18,6 +18,59 @@ function truncateString(str: string, maxLength: number): string {
   return str.slice(0, maxLength - 3) + '...';
 }
 
+function calculateScoreComponents(metrics: any): {
+  structuralScore: number;
+  linguisticScore: number;
+  indicatorScore: number;
+  total: number;
+} {
+  const normalize = (value: number, max: number) => Math.min(value / max, 1);
+
+  const structuralScore =
+    normalize(metrics.structural.entropy, 4.5) * 0.1 +
+    normalize(metrics.structural.symbolRatio, 0.3) * 0.15;
+
+  const linguisticScore =
+    normalize(metrics.linguistic.avgWordLength, 8) * 0.3 +
+    normalize(metrics.linguistic.avgSentenceLength, 20) * 0.2 +
+    normalize(metrics.linguistic.nestedClauses, 10) * 0.15;
+
+  const indicatorScore =
+    normalize(metrics.linguistic.complexityIndicators, 2) * 0.4;
+
+  return {
+    structuralScore,
+    linguisticScore,
+    indicatorScore,
+    total: structuralScore + linguisticScore + indicatorScore
+  };
+}
+
+function formatFailureDetails(metrics: any): string {
+  const scores = calculateScoreComponents(metrics);
+  const threshold = 0.5;
+
+  return `
+│ Failure Analysis:
+│ ----------------
+│ Total Score: ${scores.total.toFixed(3)} (Threshold: ${threshold})
+│ 
+│ Score Breakdown:
+│   • Structural (25%):  ${scores.structuralScore.toFixed(3)} 
+│     - Entropy: ${metrics.structural.entropy.toFixed(3)} (normalized: ${(metrics.structural.entropy / 4.5).toFixed(3)})
+│     - Symbol Ratio: ${metrics.structural.symbolRatio.toFixed(3)} (normalized: ${(metrics.structural.symbolRatio / 0.3).toFixed(3)})
+│ 
+│   • Linguistic (65%):  ${scores.linguisticScore.toFixed(3)}
+│     - Word Length: ${metrics.linguistic.avgWordLength.toFixed(2)} (normalized: ${(metrics.linguistic.avgWordLength / 8).toFixed(3)})
+│     - Sentence Length: ${metrics.linguistic.avgSentenceLength.toFixed(2)} (normalized: ${(metrics.linguistic.avgSentenceLength / 20).toFixed(3)})
+│     - Nested Clauses: ${metrics.linguistic.nestedClauses} (normalized: ${(metrics.linguistic.nestedClauses / 10).toFixed(3)})
+│ 
+│   • Complexity Indicators (40%): ${scores.indicatorScore.toFixed(3)}
+│     - Count: ${metrics.linguistic.complexityIndicators} (normalized: ${(metrics.linguistic.complexityIndicators / 2).toFixed(3)})
+│ 
+│ Decision: ${scores.total > threshold ? 'STRONG' : 'WEAK'} (${scores.total.toFixed(3)} ${scores.total > threshold ? '>' : '<='} ${threshold})`;
+}
+
 function testRouter() {
   console.clear();
   console.log('🤖 Router Test Results');
@@ -45,12 +98,10 @@ function testRouter() {
 
     console.log(`│ ${promptCol} │ ${expectedCol} │ ${actualCol} │ ${matchCol}    │ ${reasonCol} │`);
 
-    // Print metrics if there's a mismatch
+    // Print detailed metrics for failures
     if (!matches_expectation) {
       console.log('├' + '─'.repeat(150) + '┤');
-      console.log('│ Metrics for failed test:');
-      console.log('│ Structural:', JSON.stringify(result.metrics.structural, null, 2));
-      console.log('│ Linguistic:', JSON.stringify(result.metrics.linguistic, null, 2));
+      console.log(formatFailureDetails(result.metrics));
       console.log('├' + '─'.repeat(150) + '┤');
     }
   });
