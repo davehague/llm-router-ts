@@ -58,52 +58,32 @@ import { LanguageModelRouter } from "./router";
 
 const router = new LanguageModelRouter();
 
-// Function to map router decisions to your models
-function selectModel(prompt: string) {
-  const result = router.route(prompt);
-
-  // Map to your specific models
-  return result.model === "strong"
-    ? "gpt-4-0125-preview" // Your preferred strong model
-    : "gpt-3.5-turbo-0125"; // Your preferred weak model
-}
-
 // Example: OpenAI
 async function generateOpenAIResponse(prompt: string) {
-  const model = selectModel(prompt);
+ const { model } = router.route(prompt);
 
-  return await openai.chat.completions.create({
-    model,
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-  });
+ return await openai.chat.completions.create({
+   model: model === "strong"
+        ? "openai/chatgpt-4o-latest"  // $5 per 1M tokens IN / $15 per 1M tokens OUT
+        : "openai/gpt-4o-mini";  // $0.15 per 1M tokens IN / $0.60 per 1M tokens OUT
+   messages: [{ role: "user", content: prompt }],
+ });
 }
 
-// Example: Anthropic
-async function generateAnthropicResponse(prompt: string) {
-  const model =
-    selectModel(prompt) === "strong"
-      ? "claude-3-opus-20240229"
-      : "claude-3-haiku-20240307";
+// Example: OpenRouter (mixed models)
+async function generateOpenRouterResponse(prompt: string) {
+ const { model } = router.route(prompt);
 
-  return await anthropic.messages.create({
-    model,
-    max_tokens: 1000,
-    messages: [{ role: "user", content: prompt }],
-  });
-}
-
-// Example: Custom routing with analysis
-async function generateWithAnalysis(prompt: string) {
-  const { model, analysis } = router.route(prompt);
-
-  console.log("Prompt Analysis:", {
-    structureScore: analysis.structure,
-    readabilityScore: analysis.readability,
-    selectedModel: model,
-  });
-
-  return await generateOpenAIResponse(prompt);
+ return await fetch('https://openrouter.ai/api/v1/chat/completions', {
+   method: 'POST',
+   headers: {...},
+   body: JSON.stringify({
+     model: model === "strong"
+        ? "anthropic/claude-3.5-sonnet"  // $3 per 1M tokens IN / $15 per 1M tokens OUT
+        : "google/gemini-flash-1.5-8b";  // $0.0375 per 1M tokens IN / $0.15 per 1M tokens OUT
+     messages: [{ role: "user", content: prompt }],
+   })
+ }).then(res => res.json());
 }
 ```
 
@@ -128,43 +108,6 @@ Simply import the LanguageModelRouter class and instantiate it. No configuration
 - Only `router.ts` is required for production use
 - `test-cases.ts` and other files are for testing/development
 
-### Usage Examples
-
-#### Basic Usage
-
-```typescript
-const result = router.route(
-  "Analyze the implications of quantum computing on modern cryptography"
-);
-console.log(result);
-// {
-//   model: "strong",
-//   analysis: {
-//     structure: {
-//       characterCount: 71,
-//       informationDensity: 3.82,
-//       nonAlphanumericRatio: 0.14
-//     },
-//     readability: {
-//       wordLength: 6.8,
-//       sentenceLength: 9.0,
-//       clauseDepth: 3,
-//       cognitiveComplexity: 2
-//     },
-//     complexity: 0.72  // Overall score that determined the model choice
-//   }
-// }
-
-// Easy access to decision factors
-const {
-  model,
-  analysis: { complexity },
-} = result;
-console.log(
-  `Selected ${model} model (complexity: ${(complexity * 100).toFixed(1)}%)`
-);
-```
-
 ## Performance Considerations
 
 - Efficient string operations
@@ -182,44 +125,6 @@ console.log(
 - Transparent scoring system
 - Configurable thresholds if needed
 - Extensible indicator patterns
-
-## Analysis Results
-
-Each routing decision includes detailed prompt analysis:
-
-```typescript
-interface PromptAnalysis {
-  structure: {
-    characterCount: number;        // Total length in characters
-    informationDensity: number;    // Shannon entropy score (0-4.5)
-    nonAlphanumericRatio: number;  // Special character ratio (0-1)
-  };
-  readability: {
-    wordLength: number;           // Average word length
-    sentenceLength: number;       // Average words per sentence
-    clauseDepth: number;          // Number of nested/subordinate clauses
-    cognitiveComplexity: number;  // Count of cognitive verbs detected
-  };
-}
-
-// Example analysis result:
-{
-  model: "strong",
-  analysis: {
-    structure: {
-      characterCount: 145,
-      informationDensity: 3.8,    // Higher values indicate more diverse characters
-      nonAlphanumericRatio: 0.12  // Higher values indicate more special characters
-    },
-    readability: {
-      wordLength: 5.2,        // Typical range: 4-8
-      sentenceLength: 15.3,   // Typical range: 5-20
-      clauseDepth: 3,         // Higher values indicate more complex sentence structure
-      cognitiveComplexity: 2  // Count of cognitive verbs like "analyze", "evaluate"
-    }
-  }
-}
-```
 
 ## Reliability
 
@@ -248,13 +153,12 @@ npm install
 For development/testing:
 
 ```bash
-npm run test
+npm test
 ```
 
 ## Contributing
 
-Feel free to open issues or submit pull requests. The test suite can be run to verify changes:
+Feel free to open issues or submit pull requests. 
 
-```bash
-npm test
-```
+## License
+Unlicense - permission to use, copy, modify, and distribute any work without restriction or conditions.
