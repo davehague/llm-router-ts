@@ -11,10 +11,88 @@ interface ComplexityMetrics {
     avgWordLength: number; // Average word length
     avgSentenceLength: number; // Words per sentence
     nestedClauses: number; // Estimated clause depth
+    complexityIndicators: number; // Presence of complexity-indicating terms
   };
 }
 
 export class GeneralizedRouter {
+  private complexityIndicators = new Set([
+    // Analysis and Reasoning
+    "analyze",
+    "evaluate",
+    "synthesize",
+    "examine",
+    "investigate",
+    "assess",
+    "critique",
+    "interpret",
+
+    // Design and Creation
+    "design",
+    "develop",
+    "architect",
+    "formulate",
+    "devise",
+    "construct",
+
+    // Explanation and Integration
+    "explain",
+    "integrate",
+    "elaborate",
+    "demonstrate",
+    "illustrate",
+    "elucidate",
+
+    // Comparison and Contrast
+    "compare",
+    "contrast",
+    "differentiate",
+    "distinguish",
+
+    // Problem Solving
+    "solve",
+    "optimize",
+    "resolve",
+    "determine",
+
+    // Research and Theory
+    "research",
+    "theorize",
+    "hypothesize",
+    "predict",
+
+    // Critical Thinking
+    "argue",
+    "debate",
+    "justify",
+    "defend",
+    "prove",
+
+    // Complex Creation
+    "compose",
+    "generate",
+    "model",
+
+    // Strategic Planning
+    "strategize",
+    "implement",
+    "propose",
+
+    // Exploratory Thinking
+    "explore",
+    "brainstorm",
+    "conceptualize",
+    "envision",
+    "imagine",
+    "contemplate",
+    "ponder",
+    "speculate",
+    "ideate",
+    "discover",
+    "innovate",
+    "reimagine",
+  ]);
+
   public route(prompt: string): {
     model: "strong" | "weak";
     metrics: ComplexityMetrics;
@@ -48,12 +126,59 @@ export class GeneralizedRouter {
         avgWordLength: this.calculateAvgWordLength(words),
         avgSentenceLength: this.calculateAvgSentenceLength(sentences, words),
         nestedClauses: this.estimateClauseDepth(text),
+        complexityIndicators: this.calculateComplexityIndicators(text),
       },
     };
   }
 
+  private verbForms = new Map<string, string[]>([
+    // Verbs that drop 'e' before 'ing'
+    ["explore", ["explores", "exploring"]],
+    ["create", ["creates", "creating"]],
+    ["evaluate", ["evaluates", "evaluating"]],
+    ["generate", ["generates", "generating"]],
+    ["analyze", ["analyzes", "analyzing"]],
+    ["devise", ["devises", "devising"]],
+    ["optimize", ["optimizes", "optimizing"]],
+    ["integrate", ["integrates", "integrating"]],
+    ["compose", ["composes", "composing"]],
+    ["investigate", ["investigates", "investigating"]],
+    ["formulate", ["formulates", "formulating"]],
+    ["innovate", ["innovates", "innovating"]],
+  ]);
+
+  private calculateComplexityIndicators(text: string): number {
+    const lowercaseText = text.toLowerCase();
+    let count = 0;
+
+    for (const indicator of this.complexityIndicators) {
+      // Get special verb forms if they exist
+      const specialForms = this.verbForms.get(indicator);
+
+      if (specialForms) {
+        // Check base word and its special conjugations
+        if (
+          lowercaseText.includes(indicator) ||
+          specialForms.some((form) => lowercaseText.includes(form))
+        ) {
+          count++;
+        }
+      } else {
+        // Default handling for regular verbs
+        if (
+          lowercaseText.includes(indicator) ||
+          lowercaseText.includes(indicator + "s") ||
+          lowercaseText.includes(indicator + "ing")
+        ) {
+          count++;
+        }
+      }
+    }
+
+    return count;
+  }
+
   private calculateEntropy(text: string): number {
-    // Calculate Shannon entropy as a measure of information density
     const frequencies = new Map<string, number>();
     for (const char of text) {
       frequencies.set(char, (frequencies.get(char) || 0) + 1);
@@ -84,7 +209,6 @@ export class GeneralizedRouter {
   }
 
   private estimateClauseDepth(text: string): number {
-    // Estimate nested clause depth using common clause markers
     const clauseMarkers = [
       /,/g, // Basic clause separation
       /\b(that|which|where|when|because|if|unless)\b/g, // Subordinate clauses
@@ -98,22 +222,33 @@ export class GeneralizedRouter {
   }
 
   private calculateComplexityScore(metrics: ComplexityMetrics): number {
-    // Normalize and combine metrics into a single score
     const normalize = (value: number, max: number) => Math.min(value / max, 1);
 
-    return (
-      normalize(metrics.structural.entropy, 4.5) * 0.3 + // Max entropy for English text
-      normalize(metrics.structural.symbolRatio, 0.3) * 0.2 + // Symbol ratio weight
-      normalize(metrics.linguistic.avgWordLength, 8) * 0.2 + // Avg English word length
-      normalize(metrics.linguistic.avgSentenceLength, 20) * 0.15 + // Reasonable sentence length
-      normalize(metrics.linguistic.nestedClauses, 10) * 0.15 // Clause complexity
-    );
+    const structuralScore =
+      normalize(metrics.structural.entropy, 4.5) * 0.15 + // Reduced weight of entropy
+      normalize(metrics.structural.symbolRatio, 0.3) * 0.15;
+
+    const linguisticScore =
+      normalize(metrics.linguistic.avgWordLength, 8) * 0.2 +
+      normalize(metrics.linguistic.avgSentenceLength, 20) * 0.15 +
+      normalize(metrics.linguistic.nestedClauses, 10) * 0.15;
+
+    // Complexity indicators have a significant impact
+    const indicatorScore =
+      normalize(metrics.linguistic.complexityIndicators, 2) * 0.4;
+
+    return structuralScore + linguisticScore + indicatorScore;
   }
 
   private getEmptyMetrics(): ComplexityMetrics {
     return {
       structural: { length: 0, entropy: 0, symbolRatio: 0 },
-      linguistic: { avgWordLength: 0, avgSentenceLength: 0, nestedClauses: 0 },
+      linguistic: {
+        avgWordLength: 0,
+        avgSentenceLength: 0,
+        nestedClauses: 0,
+        complexityIndicators: 0,
+      },
     };
   }
 }

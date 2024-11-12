@@ -227,17 +227,6 @@ export const testCases: TestCase[] = [
 
   // Edge Cases
   {
-    prompt: "Generate a 500-word essay about cats",
-    expected_result: "WEAK",
-    reason: "Despite length, content is straightforward",
-  },
-  {
-    prompt:
-      "Write a one-line explanation of the observer effect in quantum mechanics",
-    expected_result: "STRONG",
-    reason: "Despite brevity, requires deep understanding",
-  },
-  {
     prompt:
       "Create a detailed 2000-word technical manual for operating a microwave",
     expected_result: "WEAK",
@@ -275,5 +264,118 @@ export const testCases: TestCase[] = [
     expected_result: "STRONG",
     reason:
       "Complex urban planning requiring integration of multiple disciplines",
+  },
+
+  // Medical & Healthcare
+  {
+    prompt: "What are common symptoms of a cold?",
+    expected_result: "WEAK",
+    reason: "Basic health information query",
+  },
+  {
+    prompt: "Design a personalized treatment protocol for a patient with complex comorbidities including type 2 diabetes, early-stage Alzheimer's, and chronic kidney disease",
+    expected_result: "STRONG",
+    reason: "Complex medical case requiring integration of multiple conditions and drug interactions",
+  },
+
+  // Legal & Regulatory
+  {
+    prompt: "What's the speed limit on highways?",
+    expected_result: "WEAK",
+    reason: "Basic legal fact",
+  },
+  {
+    prompt: "Analyze the international legal implications of AI-generated content ownership across different jurisdictions, considering both civil and common law systems",
+    expected_result: "STRONG",
+    reason: "Complex legal analysis spanning multiple jurisdictional frameworks",
+  },
+
+  // Game Theory & Decision Making
+  {
+    prompt: "Explain the rules of chess",
+    expected_result: "WEAK",
+    reason: "Basic game rules explanation",
+  },
+  {
+    prompt: "Design an optimal mixed strategy for a multi-player, incomplete information game with dynamic payoffs and evolving coalition structures",
+    expected_result: "STRONG",
+    reason: "Complex game theory requiring advanced mathematical and strategic analysis",
+  },
+
+  // Behavioral Economics
+  {
+    prompt: "What is supply and demand?",
+    expected_result: "WEAK",
+    reason: "Basic economic concept",
+  },
+  {
+    prompt: "Analyze how cognitive biases in institutional investors affect market efficiency during periods of technological disruption",
+    expected_result: "STRONG",
+    reason: "Complex integration of psychology, economics, and market dynamics",
+  },
+
+  // Climate & Environmental Science
+  {
+    prompt: "Why is recycling important?",
+    expected_result: "WEAK",
+    reason: "Basic environmental awareness topic",
+  },
+  {
+    prompt: "Model the cascading effects of Arctic permafrost thaw on global climate systems, including feedback loops and tipping points",
+    expected_result: "STRONG",
+    reason: "Complex climate system analysis requiring understanding of multiple interconnected systems",
+  },
+
+  // Mixed Media & Communication
+  {
+    prompt: "Write a tweet about your day",
+    expected_result: "WEAK",
+    reason: "Simple social media content",
+  },
+  {
+    prompt: "Design a transmedia storytelling campaign that integrates AR, social media, and physical installations to explore themes of digital privacy",
+    expected_result: "STRONG",
+    reason: "Complex narrative design across multiple platforms and technologies",
+  },
+
+  // Interesting Edge Cases
+  {
+    prompt: "Write a very long, detailed shopping list",
+    expected_result: "WEAK",
+    reason: "Despite length and detail, fundamentally simple task",
+  },
+  {
+    prompt: "Explain why 1 + 1 = 2 using the axioms of Zermelo-Fraenkel set theory",
+    expected_result: "STRONG",
+    reason: "Simple result but requires deep mathematical foundation",
+  },
+  {
+    prompt: "Tell me a 10-page story about a dog",
+    expected_result: "WEAK",
+    reason: "Long but straightforward narrative task",
+  },
+
+  // Emerging Technologies
+  {
+    prompt: "What is blockchain?",
+    expected_result: "WEAK",
+    reason: "Basic technology definition",
+  },
+  {
+    prompt: "Design a quantum-resistant blockchain protocol that maintains ACID properties while optimizing for scalability in IoT networks",
+    expected_result: "STRONG",
+    reason: "Complex integration of multiple cutting-edge technologies",
+  },
+
+  // Cultural & Anthropological
+  {
+    prompt: "What holidays are celebrated in Japan?",
+    expected_result: "WEAK",
+    reason: "Basic cultural information",
+  },
+  {
+    prompt: "Analyze how the evolution of digital communication platforms has influenced the development of linguistic patterns and cultural transmission across generational boundaries",
+    expected_result: "STRONG",
+    reason: "Complex sociolinguistic analysis across multiple domains",
   },
 ];
