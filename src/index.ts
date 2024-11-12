@@ -9,8 +9,12 @@ function formatOutput(text: string, model: 'strong' | 'weak'): string {
   return `${colorCode}${text}\x1b[0m`;
 }
 
-function formatMatch(matches: boolean): string {
-  return matches ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m';
+function formatMatch(matches: boolean, expected: string, actual: string): string {
+  if (matches) return '\x1b[32m✓\x1b[0m';
+  // Yellow warning for false positives (said STRONG when should be WEAK)
+  if (expected === 'WEAK' && actual === 'STRONG') return '\x1b[33m⚠\x1b[0m';
+  // Red error for false negatives (said WEAK when should be STRONG)
+  return '\x1b[31m✗\x1b[0m';
 }
 
 function truncateString(str: string, maxLength: number): string {
@@ -46,12 +50,15 @@ function calculateScoreComponents(metrics: any): {
   };
 }
 
-function formatFailureDetails(metrics: any): string {
+function formatFailureDetails(metrics: any, expected: string, actual: string): string {
   const scores = calculateScoreComponents(metrics);
   const threshold = 0.5;
+  const isWarning = expected === 'WEAK' && actual === 'STRONG';
+  const headerSymbol = isWarning ? '⚠ Warning Analysis:' : '✗ Failure Analysis:';
+  const headerColor = isWarning ? '\x1b[33m' : '\x1b[31m';
 
   return `
-│ Failure Analysis:
+│ ${headerColor}${headerSymbol}\x1b[0m
 │ ----------------
 │ Total Score: ${scores.total.toFixed(3)} (Threshold: ${threshold})
 │ 
@@ -76,24 +83,35 @@ function testRouter() {
   console.log('🤖 Router Test Results');
   console.log('====================\n');
 
+  console.log('Legend: ✓ Correct  ⚠ Over-classified  ✗ Under-classified\n');
+
   // Print header
   console.log('│ PROMPT │ EXPECTED │ ACTUAL │ MATCH │ REASON │');
   console.log('├' + '─'.repeat(150) + '┤');
 
   let matches = 0;
+  let warnings = 0;
+  let errors = 0;
   const total = testCases.length;
 
   testCases.forEach((testCase, index) => {
     const result = router.route(testCase.prompt);
     const actual = result.model.toUpperCase();
     const matches_expectation = actual === testCase.expected_result;
-    if (matches_expectation) matches++;
+    
+    if (matches_expectation) {
+      matches++;
+    } else if (testCase.expected_result === 'WEAK' && actual === 'STRONG') {
+      warnings++;
+    } else {
+      errors++;
+    }
 
     // Format each column
     const promptCol = truncateString(testCase.prompt, 40);
     const expectedCol = testCase.expected_result.padEnd(8);
     const actualCol = formatOutput(actual.padEnd(8), result.model);
-    const matchCol = formatMatch(matches_expectation);
+    const matchCol = formatMatch(matches_expectation, testCase.expected_result, actual);
     const reasonCol = truncateString(testCase.reason, 80);
 
     console.log(`│ ${promptCol} │ ${expectedCol} │ ${actualCol} │ ${matchCol}    │ ${reasonCol} │`);
@@ -101,7 +119,7 @@ function testRouter() {
     // Print detailed metrics for failures
     if (!matches_expectation) {
       console.log('├' + '─'.repeat(150) + '┤');
-      console.log(formatFailureDetails(result.metrics));
+      console.log(formatFailureDetails(result.metrics, testCase.expected_result, actual));
       console.log('├' + '─'.repeat(150) + '┤');
     }
   });
@@ -110,6 +128,8 @@ function testRouter() {
   console.log('├' + '─'.repeat(150) + '┤');
   const accuracy = (matches / total * 100).toFixed(1);
   console.log(`│ Summary: ${matches}/${total} correct (${accuracy}% accuracy)`);
+  console.log(`│         ${warnings} warnings (over-classified as STRONG)`);
+  console.log(`│         ${errors} errors (under-classified as WEAK)`);
   console.log('└' + '─'.repeat(150) + '┘');
 }
 

@@ -93,6 +93,7 @@ export class GeneralizedRouter {
     "discover",
     "innovate",
     "reimagine",
+    "implications",
   ]);
 
   public route(prompt: string): {
