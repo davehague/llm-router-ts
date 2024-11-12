@@ -670,4 +670,109 @@ export const testCases: TestCase[] = [
     reason:
       "Complex theoretical adaptation requiring cross-disciplinary thinking",
   },
+
+  // Coding examples
+  {
+    prompt: `Fix this code:
+  const arr = [1, 2, 3, 4, 5];
+  arr.map((x) => x * 2;`,
+    expected_result: "WEAK",
+    reason: "Simple syntax error fix in basic array operation",
+  },
+  {
+    prompt: `Here's my React component - how can I optimize it for performance?
+  
+  function UserList({ users }) {
+    const [searchTerm, setSearchTerm] = useState("");
+    const filteredUsers = users.filter(user => 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    return (
+      <div>
+        <input 
+          type="text" 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+        />
+        {filteredUsers.map(user => (
+          <div key={user.id}>{user.name}</div>
+        ))}
+      </div>
+    );
+  }`,
+    expected_result: "STRONG",
+    reason:
+      "Requires understanding of React performance optimization techniques including memoization, virtualization, and render optimization",
+  },
+  {
+    prompt: `What's wrong with this code?
+  for(let i=0; i<5; i++) {
+    console.log(i)
+  }`,
+    expected_result: "WEAK",
+    reason: "Basic syntax check with no actual issues",
+  },
+  {
+    prompt: `I have this distributed system code that's experiencing race conditions. Help me fix it:
+  
+  class DistributedCounter {
+    private counter = 0;
+    private nodes = new Map<string, number>();
+    
+    async increment(nodeId: string) {
+      this.counter++;
+      this.nodes.set(nodeId, this.nodes.get(nodeId) || 0 + 1);
+      await this.broadcastUpdate(nodeId);
+    }
+    
+    async decrement(nodeId: string) {
+      this.counter--;
+      this.nodes.set(nodeId, this.nodes.get(nodeId) || 0 - 1);
+      await this.broadcastUpdate(nodeId);
+    }
+    
+    private async broadcastUpdate(nodeId: string) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+      return this.counter;
+    }
+  }`,
+    expected_result: "STRONG",
+    reason:
+      "Complex distributed systems problem involving concurrent modifications, network delays, and eventual consistency",
+  },
+  {
+    prompt: `Convert this to arrow syntax:
+  function add(a, b) {
+    return a + b;
+  }`,
+    expected_result: "WEAK",
+    reason: "Simple conversion to arrow function syntax",
+  },
+  {
+    prompt: `I'm trying to implement a thread-safe producer-consumer queue in Python with rate limiting and backpressure. Here's what I have:
+  
+  class AsyncQueue:
+      def __init__(self, maxsize=100, rate_limit=10):
+          self.queue = asyncio.Queue(maxsize)
+          self.rate_limit = rate_limit
+          self._consumed = 0
+          self._lock = asyncio.Lock()
+          
+      async def produce(self, item):
+          try:
+              await self.queue.put(item)
+              self._consumed += 1
+          except asyncio.QueueFull:
+              raise Exception("Queue full")
+              
+      async def consume(self):
+          if self.queue.empty():
+              return None
+          return await self.queue.get()`,
+    expected_result: "STRONG",
+    reason:
+      "Complex concurrent programming involving thread safety, rate limiting, backpressure handling, and proper async/await patterns",
+  },
 ];
